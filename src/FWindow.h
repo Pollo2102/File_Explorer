@@ -16,6 +16,7 @@ public:
     void open_window();
 
     void set_window_title(char* title);
+    XRectangle create_rectangle(int16_t x, int16_t y, uint16_t width, uint16_t height);
 };
 
 #endif

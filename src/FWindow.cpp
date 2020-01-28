@@ -1,5 +1,8 @@
 #include "FElement.h"
 #include "FWindow.h"
+#include <vector>
+
+std::vector<XRectangle> files;
 
 FWindow::FWindow()
 {
@@ -35,6 +38,18 @@ void FWindow::init_window()
 
     set_window_title("Sistemas Operativos - File Explorer");
 
+    /* Rectangles for testing */
+    files.push_back(create_rectangle(20, 20, 100, 100));
+    files.push_back(create_rectangle(170, 20, 100, 100));
+    files.push_back(create_rectangle(320, 20, 100, 100));
+    files.push_back(create_rectangle(470, 20, 100, 100));
+    files.push_back(create_rectangle(620, 20, 100, 100));
+    files.push_back(create_rectangle(20, 170, 100, 100));
+    files.push_back(create_rectangle(170, 170, 100, 100));
+    files.push_back(create_rectangle(320, 170, 100, 100));
+    files.push_back(create_rectangle(470, 170, 100, 100));
+    files.push_back(create_rectangle(620, 170, 100, 100));
+
     /* map (show) the window */
     XMapWindow(d, w);
 }
@@ -48,10 +63,14 @@ void FWindow::open_window()
         if (e.type == Expose)
         {
             // Rectangle gets drawn on screen
-            XFillRectangle(d, w, DefaultGC(d, s), 20, 20, 10, 10);
+            /* XFillRectangle(d, w, DefaultGC(d, s), 20, 20, 10, 10); */
+            XFillRectangles(d, w, DefaultGC(d, s), &files[0], files.size());
         }
         /* exit on key press */
         if (e.type == KeyPress)
+            break;
+        
+        if (e.type == ButtonPress)
             break;
 
         // Handle Windows Close Event
@@ -69,4 +88,14 @@ void FWindow::open_window()
 void FWindow::set_window_title(char * title)
 {
     XStoreName(d, w, title);
+}
+
+XRectangle FWindow::create_rectangle(int16_t x, int16_t y, uint16_t width, uint16_t height)
+{
+    XRectangle XR;
+    XR.x = x;
+    XR.y = y;
+    XR.width = width;
+    XR.height = height;
+    return XR;
 }
