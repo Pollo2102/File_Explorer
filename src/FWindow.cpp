@@ -4,12 +4,16 @@
 #include <cstring>
 #include <string>
 
-#define INITIAL_FILE_Y_POSITION 70
 #define INITIAL_FILE_X_POSITION 20
+#define INITIAL_FILE_Y_POSITION 70
 
 std::vector<XRectangle> files;
+std::vector<BitmapData> file_icons;
 std::vector<XRectangle> ui_elems;
 std::vector<BitmapData> bitmaps;
+
+uint32_t file_X_pos = INITIAL_FILE_X_POSITION;
+uint32_t file_Y_pos = INITIAL_FILE_Y_POSITION;
 
 std::string WINDOW_TITLE = "Sistemas Operativos - File Explorer";
 std::string current_path = "/path/to/current/dir";
@@ -48,8 +52,21 @@ void FWindow::init_window()
 
     set_window_title(&WINDOW_TITLE[0]);
     ui_elems.push_back(create_rectangle(0, 45, 800, 5));
-    /* bitmaps.push_back(createBitmap("/media/diego/Secondary_ext41/Universidad/Sistemas_Operativos_II/File_Explorer/img/folder.xbm")); */
-    bitmaps.push_back(createBitmap("../img/folder.xbm"));
+
+    bitmaps.push_back(createBitmap("../img/open.xbm"));
+    bitmaps.push_back(createBitmap("../img/up-arrow.xbm"));
+    bitmaps.push_back(createBitmap("../img/trash.xbm"));
+
+    file_icons.push_back(createBitmap("../img/folder.xbm"));
+    file_icons.push_back(createBitmap("../img/file.xbm"));
+    file_icons.push_back(createBitmap("../img/folder.xbm"));
+    file_icons.push_back(createBitmap("../img/file.xbm"));
+    file_icons.push_back(createBitmap("../img/folder.xbm"));
+    file_icons.push_back(createBitmap("../img/file.xbm"));
+    file_icons.push_back(createBitmap("../img/folder.xbm"));
+    file_icons.push_back(createBitmap("../img/file.xbm"));
+    file_icons.push_back(createBitmap("../img/folder.xbm"));
+    file_icons.push_back(createBitmap("../img/file.xbm"));
 
 
     /* Rectangles for testing */
@@ -70,6 +87,7 @@ void FWindow::init_window()
 
 void FWindow::open_window()
 {
+    int counter = 0;
     while (1)
     {
         XNextEvent(d, &e);
@@ -79,8 +97,21 @@ void FWindow::open_window()
             // Draw elements on screen
             XDrawString(d, w, DefaultGC(d, s), 300, 28, &current_path[0], current_path.size());
             XFillRectangles(d, w, DefaultGC(d, s), &ui_elems[0], ui_elems.size());
-            XFillRectangles(d, w, DefaultGC(d, s), &files[0], files.size());
-            for(auto bmps : bitmaps) XCopyPlane(d, bmps.P, w, DefaultGC(d, s), 0, 0, bmps.width, bmps.height, 100, 5, 1);
+            /* XFillRectangles(d, w, DefaultGC(d, s), &files[0], files.size()); */
+            for(auto fi : file_icons)
+            {
+                XCopyPlane(d, fi.P, w, DefaultGC(d, s), 0, 0, fi.width, fi.height, file_X_pos, file_Y_pos, 1);
+                if (file_X_pos == 620)
+                {
+                    file_X_pos = 20;
+                    file_Y_pos += 150;
+                }
+                else 
+                    file_X_pos += 150;
+            }
+            XCopyPlane(d, bitmaps[0].P, w, DefaultGC(d, s), 0, 0, bitmaps[0].width, bitmaps[0].height, 15, 5, 1);
+            XCopyPlane(d, bitmaps[1].P, w, DefaultGC(d, s), 0, 0, bitmaps[1].width, bitmaps[1].height, 55, 5, 1);
+            XCopyPlane(d, bitmaps[2].P, w, DefaultGC(d, s), 0, 0, bitmaps[2].width, bitmaps[2].height, 95, 5, 1);
         }
         /* exit on key press */
         if (e.type == KeyPress)
