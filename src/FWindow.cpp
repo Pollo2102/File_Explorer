@@ -56,6 +56,8 @@ void FWindow::init_window()
     bitmaps.push_back(createBitmap("../img/open.xbm"));
     bitmaps.push_back(createBitmap("../img/up-arrow.xbm"));
     bitmaps.push_back(createBitmap("../img/trash.xbm"));
+    bitmaps.push_back(createBitmap("../img/create_folder.xbm"));
+    bitmaps.push_back(createBitmap("../img/create_file.xbm"));
 
     file_icons.push_back(createBitmap("../img/folder.xbm"));
     file_icons.push_back(createBitmap("../img/file.xbm"));
@@ -87,7 +89,6 @@ void FWindow::init_window()
 
 void FWindow::open_window()
 {
-    int counter = 0;
     while (1)
     {
         XNextEvent(d, &e);
@@ -112,6 +113,8 @@ void FWindow::open_window()
             XCopyPlane(d, bitmaps[0].P, w, DefaultGC(d, s), 0, 0, bitmaps[0].width, bitmaps[0].height, 15, 5, 1);
             XCopyPlane(d, bitmaps[1].P, w, DefaultGC(d, s), 0, 0, bitmaps[1].width, bitmaps[1].height, 55, 5, 1);
             XCopyPlane(d, bitmaps[2].P, w, DefaultGC(d, s), 0, 0, bitmaps[2].width, bitmaps[2].height, 95, 5, 1);
+            XCopyPlane(d, bitmaps[3].P, w, DefaultGC(d, s), 0, 0, bitmaps[3].width, bitmaps[3].height, 135, 5, 1);
+            XCopyPlane(d, bitmaps[4].P, w, DefaultGC(d, s), 0, 0, bitmaps[4].width, bitmaps[4].height, 175, 5, 1);
         }
         /* exit on key press */
         if (e.type == KeyPress)
