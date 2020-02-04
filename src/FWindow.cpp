@@ -48,7 +48,8 @@ void FWindow::init_window()
 
     set_window_title(&WINDOW_TITLE[0]);
     ui_elems.push_back(create_rectangle(0, 45, 800, 5));
-    bitmaps.push_back(createBitmap("/media/diego/Secondary_ext41/Universidad/Sistemas_Operativos_II/File_Explorer/img/folder.xbm"));
+    /* bitmaps.push_back(createBitmap("/media/diego/Secondary_ext41/Universidad/Sistemas_Operativos_II/File_Explorer/img/folder.xbm")); */
+    bitmaps.push_back(createBitmap("../img/folder.xbm"));
 
 
     /* Rectangles for testing */
