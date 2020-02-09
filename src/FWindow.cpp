@@ -66,30 +66,6 @@ void FWindow::init_window()
     bitmaps.push_back(createBitmap("../img/create_folder.xbm"));
     bitmaps.push_back(createBitmap("../img/create_file.xbm"));
 
-    file_icons.push_back(createBitmap(FOLDER_BITMAP));
-    file_icons.push_back(createBitmap(FILE_BITMAP));
-    file_icons.push_back(createBitmap(FOLDER_BITMAP));
-    file_icons.push_back(createBitmap(FILE_BITMAP));
-    file_icons.push_back(createBitmap(FOLDER_BITMAP));
-    file_icons.push_back(createBitmap(FILE_BITMAP));
-    file_icons.push_back(createBitmap(FOLDER_BITMAP));
-    file_icons.push_back(createBitmap(FILE_BITMAP));
-    file_icons.push_back(createBitmap(FOLDER_BITMAP));
-    file_icons.push_back(createBitmap(FILE_BITMAP));
-
-
-    /* Rectangles for testing */
-    files.push_back(create_rectangle(20, 70, 100, 100));
-    files.push_back(create_rectangle(170, 70, 100, 100));
-    files.push_back(create_rectangle(320, 70, 100, 100));
-    files.push_back(create_rectangle(470, 70, 100, 100));
-    files.push_back(create_rectangle(620, 70, 100, 100));
-    files.push_back(create_rectangle(20, 220, 100, 100));
-    files.push_back(create_rectangle(170, 220, 100, 100));
-    files.push_back(create_rectangle(320, 220, 100, 100));
-    files.push_back(create_rectangle(470, 220, 100, 100));
-    files.push_back(create_rectangle(620, 220, 100, 100));
-
     /* map (show) the window */
     XMapWindow(d, w);
 }
@@ -114,13 +90,14 @@ void FWindow::open_window()
                 {
                     BMD = createBitmap(FOLDER_BITMAP);
                     XCopyPlane(d, BMD.P, w, DefaultGC(d, s), 0, 0, BMD.width, BMD.height, file_X_pos, file_Y_pos, 1);
+                    XDrawString(d, w, DefaultGC(d, s), file_X_pos + 20, file_Y_pos + 97, &finfo.filename[0], finfo.filename.size());
                 }
                 else/*  if (finfo.file_type == DT_REG) */
                 {
                     BMD = createBitmap(FILE_BITMAP);
                     XCopyPlane(d, BMD.P, w, DefaultGC(d, s), 0, 0, BMD.width, BMD.height, file_X_pos, file_Y_pos, 1);
+                    XDrawString(d, w, DefaultGC(d, s), file_X_pos + 20, file_Y_pos + 110, &finfo.filename[0], finfo.filename.size());
                 }
-                XDrawString(d, w, DefaultGC(d, s), file_X_pos, file_Y_pos + 110, &finfo.filename[0], finfo.filename.size());
                 // std::cout << finfo.filename << std::endl;
                 if (file_X_pos == 620)
                 {
@@ -130,17 +107,6 @@ void FWindow::open_window()
                 else 
                     file_X_pos += 150;
             }
-            /* for(auto fi : file_icons)
-            {
-                XCopyPlane(d, fi.P, w, DefaultGC(d, s), 0, 0, fi.width, fi.height, file_X_pos, file_Y_pos, 1);
-                if (file_X_pos == 620)
-                {
-                    file_X_pos = 20;
-                    file_Y_pos += 150;
-                }
-                else 
-                    file_X_pos += 150;
-            } */
             print_icons();
         }
         /* exit on key press */
