@@ -6,6 +6,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <iostream>
+#include <unistd.h>
 
 #define INITIAL_FILE_X_POSITION 20
 #define INITIAL_FILE_Y_POSITION 70
@@ -55,7 +56,7 @@ void FWindow::init_window()
     XSetWMProtocols(d, w, &delWindow, 1);
 
     /* select kind of events we are interested in */
-    XSelectInput(d, w, ExposureMask | KeyPressMask);
+    XSelectInput(d, w, ExposureMask | KeyPressMask | ButtonPressMask | ButtonReleaseMask | ExposureMask);
 
     set_window_title(&WINDOW_TITLE[0]);
     ui_elems.push_back(create_rectangle(0, 45, 800, 5));
@@ -79,42 +80,17 @@ void FWindow::open_window()
         /* draw or redraw the window */
         if (e.type == Expose)
         {
-            BitmapData BMD;
-            // Draw elements on screen
-            XDrawString(d, w, DefaultGC(d, s), 300, 28, &current_path[0], current_path.size());
-            XFillRectangles(d, w, DefaultGC(d, s), &ui_elems[0], ui_elems.size());
-            /* XFillRectangles(d, w, DefaultGC(d, s), &files[0], files.size()); */
-            for(auto finfo : files_info)
-            {
-                if (finfo.file_type == DT_DIR)
-                {
-                    BMD = createBitmap(FOLDER_BITMAP);
-                    XCopyPlane(d, BMD.P, w, DefaultGC(d, s), 0, 0, BMD.width, BMD.height, file_X_pos, file_Y_pos, 1);
-                    XDrawString(d, w, DefaultGC(d, s), file_X_pos + 20, file_Y_pos + 97, &finfo.filename[0], finfo.filename.size());
-                }
-                else/*  if (finfo.file_type == DT_REG) */
-                {
-                    BMD = createBitmap(FILE_BITMAP);
-                    XCopyPlane(d, BMD.P, w, DefaultGC(d, s), 0, 0, BMD.width, BMD.height, file_X_pos, file_Y_pos, 1);
-                    XDrawString(d, w, DefaultGC(d, s), file_X_pos + 20, file_Y_pos + 110, &finfo.filename[0], finfo.filename.size());
-                }
-                // std::cout << finfo.filename << std::endl;
-                if (file_X_pos == 620)
-                {
-                    file_X_pos = 20;
-                    file_Y_pos += 110;
-                }
-                else 
-                    file_X_pos += 150;
-            }
-            print_icons();
+            print_screen();
         }
         /* exit on key press */
         if (e.type == KeyPress)
             break;
         
         if (e.type == ButtonPress)
-            break;
+        {
+            if (e.xbutton.button == Button1)
+                handle_mouse_click();
+        }
 
         // Handle Windows Close Event
         if (e.type == ClientMessage)
@@ -126,6 +102,86 @@ void FWindow::open_window()
 
     /* close connection to server */
     XCloseDisplay(d);
+}
+
+void FWindow::print_screen()
+{
+    file_X_pos = INITIAL_FILE_X_POSITION;
+    file_Y_pos = INITIAL_FILE_Y_POSITION;
+    BitmapData BMD;
+    // Draw elements on screen
+    XDrawString(d, w, DefaultGC(d, s), 300, 28, &current_path[0], current_path.size());
+    XFillRectangles(d, w, DefaultGC(d, s), &ui_elems[0], ui_elems.size());
+    for(auto &finfo : files_info)
+    {
+        if (finfo.file_type == DT_DIR)
+        {
+            BMD = createBitmap(FOLDER_BITMAP);
+            XCopyPlane(d, BMD.P, w, DefaultGC(d, s), 0, 0, BMD.width, BMD.height, file_X_pos, file_Y_pos, 1);
+            XDrawString(d, w, DefaultGC(d, s), file_X_pos + 20, file_Y_pos + 97, &finfo.filename[0], finfo.filename.size());
+        }
+        else/*  if (finfo.file_type == DT_REG) */
+        {
+            BMD = createBitmap(FILE_BITMAP);
+            XCopyPlane(d, BMD.P, w, DefaultGC(d, s), 0, 0, BMD.width, BMD.height, file_X_pos, file_Y_pos, 1);
+            XDrawString(d, w, DefaultGC(d, s), file_X_pos + 20, file_Y_pos + 110, &finfo.filename[0], finfo.filename.size());
+        }
+        finfo.height = BMD.height;
+        finfo.width = BMD.width;
+        finfo.x = file_X_pos;
+        finfo.y = file_Y_pos;
+        if (file_X_pos == 620)
+        {
+            file_X_pos = 20;
+            file_Y_pos += 110;
+        }
+        else 
+            file_X_pos += 150;
+    }
+    print_icons();
+}
+
+void FWindow::handle_mouse_click()
+{
+    int x_root, y_root, x_child, y_child;
+    Window root;
+    Window child;
+    unsigned int mask;
+    if (XQueryPointer(d, w, &root, &child, &x_root, &y_root, &x_child, &y_child, &mask))
+    {
+        check_mouse_coordinates(x_child, y_child);
+    }
+}
+
+void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
+{
+    for(auto a : bitmaps)
+    {
+        if (x_coor >= a.x 
+            && x_coor <= (a.x + a.width)
+            && y_coor >= a.y
+            && y_coor <= (a.y + a.height))
+        {
+            // Handle icon press
+        }
+    }
+
+    for(auto a : files_info)
+    {
+        if (x_coor >= a.x 
+            && x_coor <= (a.x + a.width)
+            && y_coor >= a.y
+            && y_coor <= (a.y + a.height))
+        {
+            // Handle icon press
+            // std::cout << a.filename << std::endl;
+            if (a.file_type == DT_DIR)
+            {
+                change_dir(a.filename);
+                print_screen();
+            }
+        }
+    }
 }
 
 void FWindow::set_window_title(char * title)
@@ -203,12 +259,15 @@ void FWindow::get_current_dir_files()
             files_info.clear();
             while ((ent = readdir(dir)) != NULL)
             {
-                FileData FD;
-                FD.filename = ent->d_name;
-                FD.file_abs_path = current_path + ent->d_name;
-                FD.file_type = ent->d_type;
-                // printf("%s\n", ent->d_name);
-                files_info.push_back(FD);
+                if (strcmp(ent->d_name, "."))
+                {
+                    FileData FD;
+                    FD.filename = ent->d_name;
+                    FD.file_abs_path = current_path + ent->d_name;
+                    FD.file_type = ent->d_type;
+                    // printf("%s\n", ent->d_name);
+                    files_info.push_back(FD);
+                }
             }
             closedir(dir);
         }
@@ -235,21 +294,34 @@ void FWindow::change_dir(std::string dir_string)
 {
     if (dir_string == "..")
     {
-        // Go up 1 directory
+        if (current_path != "/")
+        {
+            current_path.pop_back();
+            while (current_path[current_path.size() - 1] != '/')
+            {
+                current_path.pop_back();
+            }
+            XClearWindow(d, w);
+            get_current_dir_files();
+        }
     }
     else
     {
         current_path += (dir_string + "/");
+        XClearWindow(d, w);
         get_current_dir_files();
+
     }
 }
 
 void FWindow::print_icons()
 {
     uint32_t initial_x_icons = 15;
-    for(auto a : bitmaps)
+    for(auto &a : bitmaps)
     {
         XCopyPlane(d, a.P, w, DefaultGC(d, s), 0, 0, a.width, a.height, initial_x_icons, 5, 1);
+        a.x = initial_x_icons;
+        a.y = 5;
         initial_x_icons += 40;
     }
 }
