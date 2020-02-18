@@ -13,6 +13,7 @@
 
 
 struct BitmapData {
+    std::string filename;
     Pixmap P;
     uint32_t width;
     uint32_t height;
@@ -36,6 +37,7 @@ public:
 
     void init_server();
     void init_window();
+    void init_subwindow();
     void open_window();
     void open_file(dirent *entry);
     BitmapData createBitmap(std::string filename);

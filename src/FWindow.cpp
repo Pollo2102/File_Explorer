@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <iostream>
 #include <unistd.h>
+#include <fcntl.h>
 
 #define INITIAL_FILE_X_POSITION 20
 #define INITIAL_FILE_Y_POSITION 70
@@ -24,6 +25,8 @@ uint32_t file_Y_pos = INITIAL_FILE_Y_POSITION;
 
 std::string WINDOW_TITLE = "Sistemas Operativos - File Explorer";
 std::string current_path = "/";
+const std::string subwindow_subtext = "Write your filename here:";
+std::string subtext = "";
 
 FWindow::FWindow()
 {
@@ -163,6 +166,48 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
             && y_coor <= (a.y + a.height))
         {
             // Handle icon press
+            if (a.filename == "../img/open.xbm")
+            {
+
+            }
+            else if(a.filename == "../img/up-arrow.xbm")
+            {
+                
+            }
+            else if(a.filename == "../img/trash.xbm")
+            {
+
+            }
+            else if(a.filename == "../img/create_folder.xbm")
+            {
+                init_subwindow();
+                char cwd[PATH_MAX];
+                if (getcwd(cwd, sizeof(cwd)) != NULL)
+                {
+                    if (chdir(current_path.c_str()) != -1)
+                    {
+                        if (mkdir(subtext.c_str(), 0744) == -1)
+                            std::cout << "Error creating directory.\n";
+                        else
+                            std::cout << "Directory created successfully\n";
+                    }
+                    if (chdir(cwd) == -1)
+                    {
+                        std::cout << "Error returning to project directory.\n";
+                        std::exit(1);   
+                    }
+                }
+            }
+            else if(a.filename == "../img/create_file.xbm")
+            {
+                init_subwindow();
+                if (open((current_path + subtext).c_str(), O_CREAT, O_RDWR) != -1)
+                    std::cout << "Created file" << std::endl;
+                subtext.clear();
+            }
+            XClearWindow(d, w);
+            get_current_dir_files();
+            print_screen();
         }
     }
 
@@ -243,6 +288,7 @@ BitmapData FWindow::createBitmap(std::string filename)
             BD.P = bitmap;
             BD.height = bitmap_height;
             BD.width = bitmap_width;
+            BD.filename = filename;
             return BD;
             break;
     }
@@ -333,4 +379,68 @@ XTextItem makeXTextItem(std::string text, uint32_t X, uint32_t Y)
     XTxt.nchars = text.size();
     XTxt.delta = 1;
     return XTxt;
+}
+
+void FWindow::init_subwindow()
+{
+    /* create window */
+
+    Window w2 = XCreateSimpleWindow(d, RootWindow(d, s), 10, 10, 400, 200, 1,
+                            BlackPixel(d, s), WhitePixel(d, s));
+
+    // Process Window Close Event through event handler so XNextEvent does Not fail
+    Atom delWindow = XInternAtom(d, "WM_DELETE_WINDOW", 0);
+    XSetWMProtocols(d, w2, &delWindow, 1);
+
+    /* select kind of events we are interested in */
+    XSelectInput(d, w2, ExposureMask | KeyPressMask | ButtonPressMask | ButtonReleaseMask | ExposureMask);
+
+    // set_window_title(&WINDOW_TITLE[0]);
+    XStoreName(d, w2, "Type a string");
+
+    /* map (show) the window */
+    XMapWindow(d, w2);
+
+    while (1)
+    {
+        XNextEvent(d, &e);
+        /* draw or redraw the window */
+        if (e.type == Expose)
+        {
+            XDrawString(d, w2, DefaultGC(d, s), 120, 65, &subwindow_subtext[0], subwindow_subtext.size());
+            XDrawString(d, w2, DefaultGC(d, s), 120, 105, &subtext[0], subtext.size());
+        }
+        /* exit on key press */
+        if (e.type == KeyPress)
+        {
+            char tmpChar[2];
+            KeySym keysym_return;
+            int len = XLookupString(&e.xkey, tmpChar, 1, &keysym_return, nullptr);
+            if (tmpChar[0] == 13)
+            {
+                // Create the file or directory
+                break;
+            }
+            else if (!len) continue;
+            else if (tmpChar[0] == 8 && !subtext.empty()) subtext.pop_back();
+            else if (tmpChar[0] != 8) subtext += tmpChar[0];    
+
+            XClearWindow(d, w2);
+            XDrawString(d, w2, DefaultGC(d, s), 120, 65, &subwindow_subtext[0], subwindow_subtext.size());
+            XDrawString(d, w2, DefaultGC(d, s), 120, 105, &subtext[0], subtext.size());
+        }
+        
+        if (e.type == ButtonPress)
+        {
+            if (e.xbutton.button == Button1)
+                handle_mouse_click();
+        }
+
+        // Handle Windows Close Event
+        if (e.type == ClientMessage)
+            break;
+    }
+
+    /* destroy our window */
+    XDestroyWindow(d, w2);
 }
