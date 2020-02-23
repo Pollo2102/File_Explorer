@@ -8,6 +8,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdio.h>
 
 #define INITIAL_FILE_X_POSITION 20
 #define INITIAL_FILE_Y_POSITION 70
@@ -22,6 +23,8 @@ std::vector<FileData> files_info;
 
 uint32_t file_X_pos = INITIAL_FILE_X_POSITION;
 uint32_t file_Y_pos = INITIAL_FILE_Y_POSITION;
+
+bool deleteFlag = 0;
 
 std::string WINDOW_TITLE = "Sistemas Operativos - File Explorer";
 std::string current_path = "/";
@@ -176,7 +179,7 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
             }
             else if(a.filename == "../img/trash.xbm")
             {
-
+                deleteFlag = 1;
             }
             else if(a.filename == "../img/create_folder.xbm")
             {
@@ -220,7 +223,20 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
         {
             // Handle icon press
             // std::cout << a.filename << std::endl;
-            if (a.file_type == DT_DIR)
+            if (deleteFlag)
+            {
+                std::cout << "Deleting file;\n";
+                if (a.file_type == DT_DIR)
+                    rmdir((current_path + a.filename).c_str());
+                else if (a.file_type == DT_REG)
+                    remove((current_path + a.filename).c_str());
+                    
+                deleteFlag = 0;
+                XClearWindow(d, w);
+                get_current_dir_files();
+                print_screen();
+            }
+            else if (a.file_type == DT_DIR)
             {
                 change_dir(a.filename);
                 print_screen();
