@@ -5,6 +5,7 @@
 #include <string>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <sys/sendfile.h>
 #include <iostream>
 #include <unistd.h>
 #include <fcntl.h>
@@ -25,11 +26,20 @@ uint32_t file_X_pos = INITIAL_FILE_X_POSITION;
 uint32_t file_Y_pos = INITIAL_FILE_Y_POSITION;
 
 bool deleteFlag = 0;
+bool copyFlag = 0; // Pending
+bool moveFlag = 0; // Pending
+bool openFlag = 0; // Pending
+bool isFile = 0;
+bool isFolder = 0;
 
 std::string WINDOW_TITLE = "Sistemas Operativos - File Explorer";
 std::string current_path = "/";
 const std::string subwindow_subtext = "Write your filename here:";
 std::string subtext = "";
+
+std::string copyFilePath = "";
+std::string copyFileName = "";
+std::string moveFileString = "";
 
 FWindow::FWindow()
 {
@@ -72,6 +82,8 @@ void FWindow::init_window()
     bitmaps.push_back(createBitmap("../img/trash.xbm"));
     bitmaps.push_back(createBitmap("../img/create_folder.xbm"));
     bitmaps.push_back(createBitmap("../img/create_file.xbm"));
+    bitmaps.push_back(createBitmap("../img/copy.xbm"));
+    bitmaps.push_back(createBitmap("../img/move.xbm"));
 
     /* map (show) the window */
     XMapWindow(d, w);
@@ -116,7 +128,7 @@ void FWindow::print_screen()
     file_Y_pos = INITIAL_FILE_Y_POSITION;
     BitmapData BMD;
     // Draw elements on screen
-    XDrawString(d, w, DefaultGC(d, s), 300, 28, &current_path[0], current_path.size());
+    XDrawString(d, w, DefaultGC(d, s), 350, 28, &current_path[0], current_path.size());
     XFillRectangles(d, w, DefaultGC(d, s), &ui_elems[0], ui_elems.size());
     for(auto &finfo : files_info)
     {
@@ -175,7 +187,9 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
             }
             else if(a.filename == "../img/up-arrow.xbm")
             {
-                
+                change_dir("..");
+                get_current_dir_files();
+                print_screen();
             }
             else if(a.filename == "../img/trash.xbm")
             {
@@ -208,6 +222,43 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
                     std::cout << "Created file" << std::endl;
                 subtext.clear();
             }
+            else if(a.filename == "../img/copy.xbm")
+            {
+                std::cout << "Copying file\n";
+                std::cout << "Filename: " << copyFilePath << std::endl;
+                std::cout << "isFlag: " << isFile << std::endl;
+                if (!copyFilePath.empty() && isFile)
+                {
+                    std::cout << "Copying file now\n";
+                    // Copy file in buffer to current dir
+                    int input, output;    
+                    if ((input = open(copyFilePath.c_str(), O_RDONLY)) == -1)
+                    {
+                        std::cout << "Input error\n";
+                        return;
+                    }    
+                    if ((output = creat((current_path + copyFileName).c_str(), 0660)) == -1)
+                    {
+                        std::cout << "Output error\n";
+                        close(input);
+                        return;
+                    }
+                    off_t bytesCopied = 0;
+                    struct stat fileInfo = {0};
+                    fstat(input, &fileInfo);
+                    sendfile(output, input, &bytesCopied, fileInfo.st_size);
+                    close(input);
+                    close(output);
+                    copyFilePath.empty();
+                }
+                std::cout << "Copying file2\n";
+                if (copyFilePath.empty())
+                    copyFlag = 1;
+            }
+            else if(a.filename == "../img/move.xbm")
+            {
+                
+            }
             XClearWindow(d, w);
             get_current_dir_files();
             print_screen();
@@ -225,7 +276,6 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
             // std::cout << a.filename << std::endl;
             if (deleteFlag)
             {
-                std::cout << "Deleting file;\n";
                 if (a.file_type == DT_DIR)
                     rmdir((current_path + a.filename).c_str());
                 else if (a.file_type == DT_REG)
@@ -235,6 +285,23 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
                 XClearWindow(d, w);
                 get_current_dir_files();
                 print_screen();
+            }
+            else if (copyFlag)
+            {
+                if (a.file_type == DT_DIR)
+                {
+                    isFolder = 1;
+                    isFile = 0;
+                }
+                else if (a.file_type == DT_REG)
+                {
+                    isFile = 1;
+                    isFolder = 0;
+                }
+                copyFilePath = a.file_abs_path;
+                copyFileName = a.filename;
+
+                copyFlag = 0;
             }
             else if (a.file_type == DT_DIR)
             {
