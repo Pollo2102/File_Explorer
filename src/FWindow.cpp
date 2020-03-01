@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <filesystem>
+#include <experimental/filesystem>
 
 #define INITIAL_FILE_X_POSITION 20
 #define INITIAL_FILE_Y_POSITION 70
@@ -251,6 +253,14 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
                     close(output);
                     copyFilePath.empty();
                 }
+                else if (!copyFilePath.empty() && isFolder)
+                {
+                    // Copy folder
+                    std::filesystem::path source = copyFilePath;
+                    std::filesystem::path destination = current_path + copyFileName;
+                    std::filesystem::copy(source, destination, std::filesystem::copy_options::recursive);
+                    copyFilePath.clear();
+                }
                 std::cout << "Copying file2\n";
                 if (copyFilePath.empty())
                     copyFlag = 1;
@@ -277,7 +287,10 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
             if (deleteFlag)
             {
                 if (a.file_type == DT_DIR)
-                    rmdir((current_path + a.filename).c_str());
+                {
+                    // rmdir((current_path + a.filename).c_str());
+                    std::experimental::filesystem::remove_all(current_path + a.filename);
+                }
                 else if (a.file_type == DT_REG)
                     remove((current_path + a.filename).c_str());
                     
