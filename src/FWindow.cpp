@@ -33,6 +33,7 @@ bool moveFlag = 0; // Pending
 bool openFlag = 0; // Pending
 bool isFile = 0;
 bool isFolder = 0;
+bool moveFileBuffer = 0;
 
 std::string WINDOW_TITLE = "Sistemas Operativos - File Explorer";
 std::string current_path = "/";
@@ -41,7 +42,8 @@ std::string subtext = "";
 
 std::string copyFilePath = "";
 std::string copyFileName = "";
-std::string moveFileString = "";
+std::string moveFilePath = "";
+std::string moveFileName = "";
 
 FWindow::FWindow()
 {
@@ -267,7 +269,30 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
             }
             else if(a.filename == "../img/move.xbm")
             {
-                
+                if (moveFileBuffer)
+                {
+                    if (!moveFilePath.empty())
+                    {
+                        if (rename (moveFilePath.c_str(), (current_path + moveFileName).c_str())) {
+                            // something went wrong
+                            if (errno == EXDEV) {
+                                // copy data and meta data 
+                            } 
+                            else { perror("rename"); exit(EXIT_FAILURE); };
+                        } 
+                        else 
+                        {
+                             std::cout << "Move succeeded\n";
+                             moveFileBuffer = 0;
+                             moveFilePath.empty();
+                             moveFileName.empty();
+                        }
+                    }
+                }
+                else 
+                {
+                    moveFlag = 1;
+                }
             }
             XClearWindow(d, w);
             get_current_dir_files();
@@ -315,6 +340,25 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
                 copyFileName = a.filename;
 
                 copyFlag = 0;
+                
+            }
+            else if (moveFlag)
+            {
+                if (a.file_type == DT_DIR)
+                {
+                    isFolder = 1;
+                    isFile = 0;
+                }
+                else if (a.file_type == DT_REG)
+                {
+                    isFile = 1;
+                    isFolder = 0;
+                }
+                moveFileName = a.filename;
+                moveFilePath = a.file_abs_path;
+                
+                moveFlag = 0;
+                moveFileBuffer = 1;
             }
             else if (a.file_type == DT_DIR)
             {
