@@ -187,7 +187,7 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
             // Handle icon press
             if (a.filename == "../img/open.xbm")
             {
-
+                openFlag = 1;
             }
             else if(a.filename == "../img/up-arrow.xbm")
             {
@@ -359,6 +359,19 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
                 
                 moveFlag = 0;
                 moveFileBuffer = 1;
+            }
+            else if (openFlag)
+            {
+                if (a.file_type == DT_REG)
+                {
+                    std::string s;
+                    s = ("xdg-open " + a.file_abs_path);
+                    int res = system(s.c_str());
+                    if (res)
+                        printf("Error opening %s\n", a.filename.c_str());
+                }
+
+                openFlag = 0;
             }
             else if (a.file_type == DT_DIR)
             {
