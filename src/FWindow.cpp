@@ -30,7 +30,9 @@ uint32_t file_Y_pos = INITIAL_FILE_Y_POSITION;
 bool deleteFlag = 0;
 bool copyFlag = 0; // Pending
 bool moveFlag = 0; // Pending
-bool openFlag = 0; // Pending
+bool openFlag = 0; 
+bool symlinkFlag = 0;
+bool symlinkBuffer = 0;
 bool isFile = 0;
 bool isFolder = 0;
 bool moveFileBuffer = 0;
@@ -44,6 +46,8 @@ std::string copyFilePath = "";
 std::string copyFileName = "";
 std::string moveFilePath = "";
 std::string moveFileName = "";
+std::string symlinkFilePath = "";
+std::string symlinkFileName = "";
 
 FWindow::FWindow()
 {
@@ -88,6 +92,7 @@ void FWindow::init_window()
     bitmaps.push_back(createBitmap("../img/create_file.xbm"));
     bitmaps.push_back(createBitmap("../img/copy.xbm"));
     bitmaps.push_back(createBitmap("../img/move.xbm"));
+    bitmaps.push_back(createBitmap("../img/link.xbm"));
 
     /* map (show) the window */
     XMapWindow(d, w);
@@ -132,7 +137,7 @@ void FWindow::print_screen()
     file_Y_pos = INITIAL_FILE_Y_POSITION;
     BitmapData BMD;
     // Draw elements on screen
-    XDrawString(d, w, DefaultGC(d, s), 350, 28, &current_path[0], current_path.size());
+    XDrawString(d, w, DefaultGC(d, s), 375, 28, &current_path[0], current_path.size());
     XFillRectangles(d, w, DefaultGC(d, s), &ui_elems[0], ui_elems.size());
     for(auto &finfo : files_info)
     {
@@ -294,6 +299,23 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
                     moveFlag = 1;
                 }
             }
+            else if (a.filename == "../img/link.xbm")
+            {
+                if (!symlinkBuffer)
+                    symlinkFlag = 1;
+                else 
+                {
+                    if (!symlinkFilePath.empty())
+                    {
+                        int res = symlink(symlinkFilePath.c_str(), (current_path + symlinkFileName).c_str());
+                        if (!res)
+                            printf("Link created.\n");
+                        else
+                            printf("Link creation failed.\n");
+                    }
+                    symlinkBuffer = 0;
+                }
+            }
             XClearWindow(d, w);
             get_current_dir_files();
             print_screen();
@@ -316,7 +338,7 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
                     // rmdir((current_path + a.filename).c_str());
                     std::experimental::filesystem::remove_all(current_path + a.filename);
                 }
-                else if (a.file_type == DT_REG)
+                else if (a.file_type == DT_REG || a.file_type == DT_LNK)
                     remove((current_path + a.filename).c_str());
                     
                 deleteFlag = 0;
@@ -372,6 +394,14 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
                 }
 
                 openFlag = 0;
+            }
+            else if (symlinkFlag)
+            {
+                symlinkFileName = a.filename;
+                symlinkFilePath = a.file_abs_path;
+
+                symlinkFlag = 0;
+                symlinkBuffer = 1;
             }
             else if (a.file_type == DT_DIR)
             {
