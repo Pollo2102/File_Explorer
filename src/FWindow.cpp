@@ -12,11 +12,13 @@
 #include <stdio.h>
 #include <filesystem>
 #include <experimental/filesystem>
+#include <cmath>
 
 #define INITIAL_FILE_X_POSITION 20
 #define INITIAL_FILE_Y_POSITION 70
 #define FILE_BITMAP "../img/file.xbm"
 #define FOLDER_BITMAP "../img/folder.xbm"
+#define LINK_BITMAP "../img/big-link.xbm"
 
 std::vector<XRectangle> files;
 std::vector<BitmapData> file_icons;
@@ -27,9 +29,11 @@ std::vector<FileData> files_info;
 uint32_t file_X_pos = INITIAL_FILE_X_POSITION;
 uint32_t file_Y_pos = INITIAL_FILE_Y_POSITION;
 
+uint32_t page_number = 0;
+
 bool deleteFlag = 0;
-bool copyFlag = 0; // Pending
-bool moveFlag = 0; // Pending
+bool copyFlag = 0; 
+bool moveFlag = 0; 
 bool openFlag = 0; 
 bool symlinkFlag = 0;
 bool symlinkBuffer = 0;
@@ -93,6 +97,8 @@ void FWindow::init_window()
     bitmaps.push_back(createBitmap("../img/copy.xbm"));
     bitmaps.push_back(createBitmap("../img/move.xbm"));
     bitmaps.push_back(createBitmap("../img/link.xbm"));
+    bitmaps.push_back(createBitmap("../img/up-move.xbm"));
+    bitmaps.push_back(createBitmap("../img/down-move.xbm"));
 
     /* map (show) the window */
     XMapWindow(d, w);
@@ -137,15 +143,27 @@ void FWindow::print_screen()
     file_Y_pos = INITIAL_FILE_Y_POSITION;
     BitmapData BMD;
     // Draw elements on screen
-    XDrawString(d, w, DefaultGC(d, s), 375, 28, &current_path[0], current_path.size());
+    XDrawString(d, w, DefaultGC(d, s), 420, 28, &current_path[0], current_path.size());
     XFillRectangles(d, w, DefaultGC(d, s), &ui_elems[0], ui_elems.size());
-    for(auto &finfo : files_info)
+    for (size_t i = 0; i < 25; i++)
     {
+        if (!((page_number * 25) + i < files_info.size()))
+        {
+            break;
+        }
+        auto &finfo = files_info[(page_number * 25) + i];
+
         if (finfo.file_type == DT_DIR)
         {
             BMD = createBitmap(FOLDER_BITMAP);
             XCopyPlane(d, BMD.P, w, DefaultGC(d, s), 0, 0, BMD.width, BMD.height, file_X_pos, file_Y_pos, 1);
             XDrawString(d, w, DefaultGC(d, s), file_X_pos + 20, file_Y_pos + 97, &finfo.filename[0], finfo.filename.size());
+        }
+        else if (finfo.file_type == DT_LNK)
+        {
+            BMD = createBitmap(LINK_BITMAP);
+            XCopyPlane(d, BMD.P, w, DefaultGC(d, s), 0, 0, BMD.width, BMD.height, file_X_pos, file_Y_pos, 1);
+            XDrawString(d, w, DefaultGC(d, s), file_X_pos + 20, file_Y_pos + 110, &finfo.filename[0], finfo.filename.size());
         }
         else/*  if (finfo.file_type == DT_REG) */
         {
@@ -165,6 +183,33 @@ void FWindow::print_screen()
         else 
             file_X_pos += 150;
     }
+    
+    // for(auto &finfo : files_info)
+    // {
+    //     if (finfo.file_type == DT_DIR)
+    //     {
+    //         BMD = createBitmap(FOLDER_BITMAP);
+    //         XCopyPlane(d, BMD.P, w, DefaultGC(d, s), 0, 0, BMD.width, BMD.height, file_X_pos, file_Y_pos, 1);
+    //         XDrawString(d, w, DefaultGC(d, s), file_X_pos + 20, file_Y_pos + 97, &finfo.filename[0], finfo.filename.size());
+    //     }
+    //     else/*  if (finfo.file_type == DT_REG) */
+    //     {
+    //         BMD = createBitmap(FILE_BITMAP);
+    //         XCopyPlane(d, BMD.P, w, DefaultGC(d, s), 0, 0, BMD.width, BMD.height, file_X_pos, file_Y_pos, 1);
+    //         XDrawString(d, w, DefaultGC(d, s), file_X_pos + 20, file_Y_pos + 110, &finfo.filename[0], finfo.filename.size());
+    //     }
+    //     finfo.height = BMD.height;
+    //     finfo.width = BMD.width;
+    //     finfo.x = file_X_pos;
+    //     finfo.y = file_Y_pos;
+    //     if (file_X_pos == 620)
+    //     {
+    //         file_X_pos = 20;
+    //         file_Y_pos += 110;
+    //     }
+    //     else 
+    //         file_X_pos += 150;
+    // }
     print_icons();
 }
 
@@ -316,6 +361,18 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
                     symlinkBuffer = 0;
                 }
             }
+            else if (a.filename == "../img/down-move.xbm")
+            {
+                if (page_number < (uint32_t)std::ceil(files_info.size() % 25))
+                {
+                    page_number++;
+                }
+            }
+            else if (a.filename == "../img/up-move.xbm")
+            {
+                if (page_number > 0)
+                    page_number--;
+            }
             XClearWindow(d, w);
             get_current_dir_files();
             print_screen();
@@ -405,6 +462,7 @@ void FWindow::check_mouse_coordinates(uint32_t x_coor, uint32_t y_coor)
             }
             else if (a.file_type == DT_DIR)
             {
+                page_number = 0;
                 change_dir(a.filename);
                 print_screen();
             }
